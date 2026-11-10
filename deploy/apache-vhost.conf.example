@@ -1,0 +1,29 @@
+# Apache 2.4 reverse proxy for vault-mcp. Needs: a2enmod proxy proxy_http ssl
+# Replace mcp.example.com, and get the certificate first, for example:
+#   certbot certonly --apache -d mcp.example.com
+<VirtualHost *:443>
+    ServerName mcp.example.com
+    SSLEngine on
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile /etc/letsencrypt/live/mcp.example.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/mcp.example.com/privkey.pem
+
+    # Claude's connectors call from Anthropic's cloud, not from your phone or
+    # laptop. Only that range may reach the MCP, token, registration and
+    # discovery endpoints. Check the current range before you deploy:
+    # https://platform.claude.com/docs/en/api/ip-addresses
+    <Location "/">
+        Require ip 160.79.104.0/21
+    </Location>
+    # The sign-in pages are opened by your own browser, so they are reachable
+    # from anywhere. They hand out nothing without a GitHub sign-in, and
+    # reading needs an allowed login on top of that.
+    <LocationMatch "^/(authorize|auth/callback|consent)(/|$)">
+        Require all granted
+    </LocationMatch>
+
+    ProxyPreserveHost On
+    ProxyTimeout 300
+    ProxyPass        / http://127.0.0.1:8788/
+    ProxyPassReverse / http://127.0.0.1:8788/
+</VirtualHost>

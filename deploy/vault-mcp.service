@@ -1,0 +1,26 @@
+# /etc/systemd/system/vault-mcp.service
+# Replace SERVICE_USER with an account that can read the vault and nothing
+# more, and /opt/obsidian-vault-mcp with where you cloned this repository.
+[Unit]
+Description=Read-only Obsidian vault MCP server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=SERVICE_USER
+WorkingDirectory=/opt/obsidian-vault-mcp
+EnvironmentFile=/etc/vault-mcp.env
+ExecStart=/opt/obsidian-vault-mcp/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8788
+Restart=always
+RestartSec=5
+
+# The service can write to its state directory and nowhere else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+StateDirectory=vault-mcp
+StateDirectoryMode=0700
+
+[Install]
+WantedBy=multi-user.target
